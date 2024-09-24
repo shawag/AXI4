@@ -95,6 +95,7 @@ reg                          r_axi_wready;
 reg [1:0]                    r_axi_bresp;
 reg                          r_axi_bvalid;
 //AR channel
+reg [P_S_AXI_ADDR_WIDTH-1:0] r_axi_araddr;
 reg                          r_axi_arready;
 reg [P_S_AXI_DATA_WIDTH-1:0] r_axi_rdata;
 reg [1:0]                    r_axi_rresp;
@@ -108,6 +109,7 @@ assign S_AXI_AWVALID = r_axi_awvalid;
 assign S_AXI_WREADY = r_axi_wready;
 assign S_AXI_BRESP = r_axi_bresp;
 assign S_AXI_BVALID = r_axi_bvalid;
+assign S_AXI_ARADDR = r_axi_araddr;
 assign S_AXI_ARREADY = r_axi_arready;
 assign S_AXI_RDATA = r_axi_rdata;
 assign S_AXI_RRESP = r_axi_rresp;
@@ -161,6 +163,63 @@ always @(posedge S_AXI_ACLK) begin
         else
             r_axi_bvalid <= r_axi_bvalid;
     end
+end
+
+always @(posedge S_AXI_ACLK) begin
+	if(~S_AXI_ARESETN)
+		r_axi_bresp <= 2'b00;
+	else begin
+		if(r_axi_awready && S_AXI_AWVALID && ~r_axi_bvalid && r_axi_wready && S_AXI_WVALID)
+			r_axi_bresp <= 2'b00;
+		else
+			r_axi_bresp <= 2'b00;
+	end
+end
+
+always @(posedge S_AXI_ACLK) begin
+	if(~S_AXI_ARESETN)
+	 	r_axi_arready <= 1'b0;
+	else begin
+		if(~r_axi_arready && S_AXI_ARVALID)
+			r_axi_arready <= 1'b1;
+		else
+			r_axi_arready <= 1'b0;
+	end
+end
+
+always @(posedge S_AXI_ACLK) begin
+	if(~S_AXI_ARESETN)
+		r_axi_araddr <= {P_S_AXI_ADDR_WIDTH{1'b0}};
+	else begin
+		if(~r_axi_arready && S_AXI_ARVALID)
+			r_axi_araddr <= S_AXI_ARADDR;
+		else
+			r_axi_araddr <= r_axi_araddr;
+	end
+end
+
+always @(posedge S_AXI_ACLK) begin
+	if(~S_AXI_ARESETN)
+		r_axi_rvalid <= 1'b0;
+	else begin
+		if(~r_axi_rvalid && r_axi_arready && S_AXI_ARVALID)
+			r_axi_rvalid <= 1'b1;
+		else if(r_axi_rvalid && S_AXI_RREADY)
+			r_axi_rvalid <= 1'b0;
+		else
+			r_axi_rvalid <= r_axi_rvalid;
+	end
+end
+
+always @(posedge S_AXI_ACLK) begin
+	if(~S_AXI_ARESETN)
+		r_axi_rresp <= 2'b00;
+	else begin
+		if(~r_axi_rvalid && r_axi_arready && S_AXI_ARVALID)
+			r_axi_rresp <= 2'b00;
+		else
+			r_axi_rresp <= 2'b00;
+	end
 end
 
 
