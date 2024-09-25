@@ -101,7 +101,9 @@ reg [P_S_AXI_DATA_WIDTH-1:0] r_axi_rdata;
 reg [1:0]                    r_axi_rresp;
 //R channel
 reg                          r_axi_rvalid;
-reg                         r_axi_awready;
+reg                          r_axi_awready;
+
+
 
 //output connection
 assign S_AXI_AWADDR = r_axi_awaddr;
@@ -115,13 +117,24 @@ assign S_AXI_RDATA = r_axi_rdata;
 assign S_AXI_RRESP = r_axi_rresp;
 assign S_AXI_RVALID = r_axi_rvalid;
 assign S_AXI_AWREADY = r_axi_awready;
+//logic define
+wire axi_reg_wren = r_axi_wready && S_AXI_WVALID && r_axi_awready && S_AXI_AWVALID;
+wire axi_reg_rden = r_axi_arready && S_AXI_ARVALID && ~r_axi_rvalid;
+//reg define
+reg							 r_aw_valid;
+
+//slave reg define
+reg [P_S_AXI_DATA_WIDTH-1:0] r_axi_reg0;
+reg [P_S_AXI_DATA_WIDTH-1:0] r_axi_reg1;
+reg [P_S_AXI_DATA_WIDTH-1:0] r_axi_reg2;
+reg [P_S_AXI_DATA_WIDTH-1:0] r_axi_reg3;
 
 
 always @(posedge S_AXI_ACLK) begin
     if(~S_AXI_ARESETN)
         r_axi_awready <= 1'b0;   
     else begin
-        if(~r_axi_awready && S_AXI_AWVALID && S_AXI_WVALID)
+        if(~r_axi_awready && S_AXI_AWVALID && S_AXI_WVALID && r_aw_valid)
             r_axi_awready <= 1'b1;
         else if(S_AXI_BREADY && r_axi_bvalid) 
             r_axi_awready <= 1'b0;
@@ -134,7 +147,7 @@ always @(posedge S_AXI_ACLK) begin
     if(~S_AXI_ARESETN)
         r_axi_awaddr <= 0;
     else begin
-        if(r_axi_awready && S_AXI_AWVALID && S_AXI_WVALID)
+        if(r_axi_awready && S_AXI_AWVALID && S_AXI_WVALID && r_aw_valid)
             r_axi_awaddr <= S_AXI_AWADDR;
         else
             r_axi_awaddr <= r_axi_awaddr;
@@ -142,10 +155,24 @@ always @(posedge S_AXI_ACLK) begin
 end
 
 always @(posedge S_AXI_ACLK) begin
+	if(~S_AXI_ARESETN)
+		r_aw_valid <= 1'b1;
+	else begin
+		if(~r_axi_awready && S_AXI_AWVALID && S_AXI_WVALID && r_aw_valid)
+			r_aw_valid <= 1'b0;
+		else if(r_axi_bvalid && S_AXI_BREADY)
+			r_aw_valid <= 1'b1;
+		else
+			r_aw_valid <= r_aw_valid;
+	end
+	
+end
+
+always @(posedge S_AXI_ACLK) begin
     if(~S_AXI_ARESETN)
         r_axi_wready <= 1'b0;
     else begin
-       if(~r_axi_awready && S_AXI_AWVALID && S_AXI_WVALID)
+       if(~r_axi_awready && S_AXI_AWVALID && S_AXI_WVALID && r_aw_valid)
             r_axi_wready <= 1'b1;
         else
             r_axi_wready <= 1'b0;
@@ -222,7 +249,54 @@ always @(posedge S_AXI_ACLK) begin
 	end
 end
 
+always @(posedge S_AXI_ACLK) begin
+	if(~S_AXI_ARESETN) begin
+		r_axi_reg0 <= {P_S_AXI_DATA_WIDTH{1'b0}};
+		r_axi_reg1 <= {P_S_AXI_DATA_WIDTH{1'b0}};
+		r_axi_reg2 <= {P_S_AXI_DATA_WIDTH{1'b0}};
+		r_axi_reg3 <= {P_S_AXI_DATA_WIDTH{1'b0}};
+	end
+	else begin
+		if(axi_reg_wren) begin
+			case(r_axi_awaddr[1:0]) 
+				2'b00: r_axi_reg0 <= S_AXI_WDATA;
+				2'b01: r_axi_reg1 <= S_AXI_WDATA;
+				2'b10: r_axi_reg2 <= S_AXI_WDATA;
+				2'b11: r_axi_reg3 <= S_AXI_WDATA;
+				default: begin
+					r_axi_reg0 <= r_axi_reg0;
+					r_axi_reg1 <= r_axi_reg1;
+					r_axi_reg2 <= r_axi_reg2;
+					r_axi_reg3 <= r_axi_reg3;
+				end
+			endcase
+		end
+		else begin
+			r_axi_reg0 <= r_axi_reg0;
+			r_axi_reg1 <= r_axi_reg1;
+			r_axi_reg2 <= r_axi_reg2;
+			r_axi_reg3 <= r_axi_reg3;
+		end
+	end
 
+end
+
+always @(posedge S_AXI_ACLK) begin
+	if(~S_AXI_ARESETN)
+		r_axi_rdata <= {P_S_AXI_DATA_WIDTH{1'b0}};
+	else begin
+		if(axi_reg_rden)
+			case(r_axi_araddr[1:0])
+			2'b00: r_axi_rdata = r_axi_reg0;
+			2'b01: r_axi_rdata = r_axi_reg1;
+			2'b10: r_axi_rdata = r_axi_reg2;
+			2'b11: r_axi_rdata = r_axi_reg3;
+			default: r_axi_rdata = {P_S_AXI_DATA_WIDTH{1'b0}};
+			endcase
+		else
+			r_axi_rdata <= r_axi_rdata;
+	end
+end
 
 
 
