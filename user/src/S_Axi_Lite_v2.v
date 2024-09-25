@@ -20,7 +20,7 @@
 
 `include "Timesacle.v"
 
-module S_Axi_Lite #(
+module S_Axi_Lite_v2 #(
     parameter integer P_S_AXI_DATA_WIDTH	= 32,
     parameter integer P_S_AXI_ADDR_WIDTH	= 4
 )
@@ -99,8 +99,8 @@ assign S_AXI_RRESP = r_axi_rresp;
 assign S_AXI_RVALID = r_axi_rvalid;
 assign S_AXI_AWREADY = r_axi_awready;
 //logic define
-wire axi_reg_wren = r_axi_wready && S_AXI_WVALID ;
-wire axi_reg_rden = ~r_axi_rvalid;
+wire axi_reg_wren = r_axi_wready && S_AXI_WVALID && r_axi_awready && S_AXI_AWVALID;
+wire axi_reg_rden = r_axi_arready && S_AXI_ARVALID && ~r_axi_rvalid;
 //reg define
 //indicate this is valid to write the write address
 reg							 r_aw_valid;
@@ -116,7 +116,7 @@ always @(posedge S_AXI_ACLK) begin
     if(~S_AXI_ARESETN)
         r_axi_awready <= 1'b0;   
     else begin
-        if(~r_axi_awready && S_AXI_AWVALID )
+        if(~r_axi_awready && S_AXI_AWVALID && S_AXI_WVALID && r_aw_valid)
             r_axi_awready <= 1'b1;
         else if(S_AXI_BREADY && r_axi_bvalid) 
             r_axi_awready <= 1'b0;
@@ -129,7 +129,7 @@ always @(posedge S_AXI_ACLK) begin
     if(~S_AXI_ARESETN)
         r_axi_awaddr <= {P_S_AXI_ADDR_WIDTH{1'b0}};
     else begin
-        if(r_axi_awready && S_AXI_AWVALID )
+        if(r_axi_awready && S_AXI_AWVALID && S_AXI_WVALID && r_aw_valid)
             r_axi_awaddr <= S_AXI_AWADDR;
         else
             r_axi_awaddr <= r_axi_awaddr;
@@ -140,7 +140,7 @@ always @(posedge S_AXI_ACLK) begin
 	if(~S_AXI_ARESETN)
 		r_aw_valid <= 1'b1;
 	else begin
-		if(~r_axi_awready && S_AXI_AWVALID  && r_aw_valid)
+		if(~r_axi_awready && S_AXI_AWVALID && S_AXI_WVALID && r_aw_valid)
 			r_aw_valid <= 1'b0;
 		else if(r_axi_bvalid && S_AXI_BREADY)
 			r_aw_valid <= 1'b1;
@@ -154,7 +154,7 @@ always @(posedge S_AXI_ACLK) begin
     if(~S_AXI_ARESETN)
         r_axi_wready <= 1'b0;
     else begin
-       if(~r_axi_wready  && S_AXI_WVALID )
+       if(~r_axi_awready && S_AXI_AWVALID && S_AXI_WVALID && r_aw_valid)
             r_axi_wready <= 1'b1;
         else
             r_axi_wready <= 1'b0;
@@ -165,7 +165,7 @@ always @(posedge S_AXI_ACLK) begin
     if(~S_AXI_ARESETN)
         r_axi_bvalid <= 1'b0;
     else begin
-        if( ~r_axi_bvalid && r_axi_wready && S_AXI_WVALID)
+        if(r_axi_awready && S_AXI_AWVALID && ~r_axi_bvalid && r_axi_wready && S_AXI_WVALID)
             r_axi_bvalid <= 1'b1;
         else if (r_axi_bvalid && S_AXI_BREADY)
             r_axi_bvalid <= 1'b0;
@@ -178,7 +178,7 @@ always @(posedge S_AXI_ACLK) begin
 	if(~S_AXI_ARESETN)
 		r_axi_bresp <= 2'b00;
 	else begin
-		if(r_axi_awready && ~r_axi_bvalid && r_axi_wready && S_AXI_WVALID)
+		if(r_axi_awready && S_AXI_AWVALID && ~r_axi_bvalid && r_axi_wready && S_AXI_WVALID)
 			r_axi_bresp <= 2'b00;
 		else
 			r_axi_bresp <= 2'b00;
@@ -211,7 +211,7 @@ always @(posedge S_AXI_ACLK) begin
 	if(~S_AXI_ARESETN)
 		r_axi_rvalid <= 1'b0;
 	else begin
-		if(~r_axi_rvalid &&  S_AXI_ARVALID)
+		if(~r_axi_rvalid && r_axi_arready && S_AXI_ARVALID)
 			r_axi_rvalid <= 1'b1;
 		else if(r_axi_rvalid && S_AXI_RREADY)
 			r_axi_rvalid <= 1'b0;
@@ -224,7 +224,7 @@ always @(posedge S_AXI_ACLK) begin
 	if(~S_AXI_ARESETN)
 		r_axi_rresp <= 2'b00;
 	else begin
-		if(~r_axi_rvalid && r_axi_arready )
+		if(~r_axi_rvalid && r_axi_arready && S_AXI_ARVALID)
 			r_axi_rresp <= 2'b00;
 		else
 			r_axi_rresp <= 2'b00;
