@@ -20,39 +20,39 @@
 //
 
 
-module axi_lite_master_test;
-//全局信号
+module Tb_S_Axi_Lite;
+//global signals
 logic ACLK;
 logic ARESETn;
-//写地址通道
+//AW channel
 logic AWVALID;
 logic [31:0]AWADDR; 
 logic [2:0]AWPROT; 
 logic AWREADY;
-//写数据通道
+//W channel
 logic WVALID;
 logic [31:0] WDATA; 
 logic [3:0] WSTRB;
 logic WREADY;
-//写响应通道
+//WB channel
 logic BREADY;
 logic BVALID;
 logic [1:0] BRESP;
-//读地址通道
+//AR channel
 logic ARVALID;
 logic [31:0] ARADDR; 
 logic [2:0] ARPROT; 
 logic ARREADY;
-//读数据通道
+//R channel
 logic RREADY;
 logic RVALID;
 logic [31:0] RDATA; 
 logic [1:0] RRESP;
-//其他
+//inner logic
 logic start_write;
 logic start_read;
 logic [31:0] rd_data;
-logic busy;
+
 //ACLK AND ARESETn
 initial begin
     ACLK=0;
@@ -60,6 +60,7 @@ initial begin
         #5 ACLK=~ACLK;
     end
 end
+
 initial begin
     ARESETn=0;
     #10

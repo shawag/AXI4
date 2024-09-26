@@ -100,7 +100,7 @@ assign S_AXI_RVALID = r_axi_rvalid;
 assign S_AXI_AWREADY = r_axi_awready;
 //logic define
 wire axi_reg_wren = r_axi_wready && S_AXI_WVALID ;
-wire axi_reg_rden = ~r_axi_rvalid;
+wire axi_reg_rden = r_axi_rvalid && S_AXI_RREADY;
 //reg define
 //indicate this is valid to write the write address
 reg							 r_aw_valid;
@@ -135,6 +135,7 @@ always @(posedge S_AXI_ACLK) begin
             r_axi_awaddr <= r_axi_awaddr;
     end
 end
+/*
 //aw_valid signal generator
 always @(posedge S_AXI_ACLK) begin
 	if(~S_AXI_ARESETN)
@@ -149,6 +150,7 @@ always @(posedge S_AXI_ACLK) begin
 	end
 	
 end
+*/
 //wready signal generator
 always @(posedge S_AXI_ACLK) begin
     if(~S_AXI_ARESETN)
