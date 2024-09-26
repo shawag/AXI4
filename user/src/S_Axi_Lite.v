@@ -18,7 +18,7 @@
 //
 //wavedom
 
-`include "Timesacle.v"
+`include "Timescale.v"
 
 module S_Axi_Lite #(
     parameter integer P_S_AXI_DATA_WIDTH	= 32,
